@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Ice Breath</title>
+<style>
+  :root {
+    --bg: #0F2A38;
+    --bg2: #123244;
+    --fg: #EAF4F7;
+    --fg-dim: #8FB2BE;
+    --accent: #3FB8C4;
+    --accent2: #7FD8E0;
+    --card-bg: #163B4C;
+    --card-bg-hover: #1D4A5E;
+    --danger: #D9695F;
+    --ok: #4CAF7D;
+    --border: #2A5468;
+    --warn: #E0B04A;
+  }
+  html[data-theme="light"] {
+    --bg: #EAF6F8;
+    --bg2: #DCEEF2;
+    --fg: #133344;
+    --fg-dim: #557E8B;
+    --accent: #1B8A96;
+    --accent2: #0F6873;
+    --card-bg: #FFFFFF;
+    --card-bg-hover: #F0F8FA;
+    --border: #C7E0E6;
+    --danger: #C4453A;
+    --ok: #2E9C63;
+    --warn: #B4791C;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    overscroll-behavior: none; -webkit-user-select: none; user-select: none;
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  #app { height: 100%; display: flex; flex-direction: column; }
+  .screen {
+    display: none; flex-direction: column; height: 100%; overflow-y: auto;
+    touch-action: pan-y;
+    padding: 20px;
+    padding-top: calc(36px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .screen.active { display: flex; }
+
+  h1 { font-size: 1.7em; margin: 0 0 4px; }
+  h2 { font-size: 1.3em; margin: 0 0 12px; }
+  h3 { font-size: 1.05em; margin: 18px 0 8px; color: var(--accent2); }
+  .subtitle { color: var(--fg-dim); margin: 0 0 20px; font-size: 0.95em; }
+  p { line-height: 1.5; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .bottom-nav { display: flex; gap: 10px; margin-top: 16px; }
+  .bottom-nav button { flex: 1; }
+
+  button { font-family: inherit; }
+  button.primary {
+    background: var(--accent); color: #06232C; border: none; border-radius: 14px;
+    font-size: 1.15em; font-weight: 700; padding: 18px; cursor: pointer;
+  }
+  button.primary:active { filter: brightness(0.9); }
+  button.secondary {
+    background: transparent; color: var(--fg); border: 1px solid var(--border);
+    border-radius: 12px; font-size: 1em; padding: 14px; cursor: pointer;
+  }
+  button.secondary:active { background: var(--card-bg); }
+  button.danger { color: var(--danger); border-color: var(--danger); }
+  button.icon-btn {
+    background: var(--card-bg); border: 1px solid var(--border); color: var(--fg);
+    border-radius: 10px; padding: 10px 14px; font-size: 0.95em; cursor: pointer;
+  }
+  button.icon-btn:active { background: var(--card-bg-hover); }
+
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .streak-badge {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--card-bg);
+    border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px;
+    font-size: 0.95em; margin-bottom: 18px;
+  }
+  .streak-badge .n { font-weight: 800; color: var(--accent2); }
+
+  .setting-label { font-size: 0.95em; margin-bottom: 10px; color: var(--fg-dim); }
+  .stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .stepper button {
+    width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--bg); color: var(--fg); font-size: 1.4em; cursor: pointer; line-height: 1;
+  }
+  .stepper button:active { background: var(--card-bg-hover); }
+  .stepper .value { font-size: 1.2em; font-weight: 700; min-width: 90px; text-align: center; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .switch { position: relative; width: 50px; height: 28px; flex: none; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider { position: absolute; inset: 0; background: var(--border); border-radius: 28px; cursor: pointer; transition: 0.15s; }
+  .switch .slider::before { content: ""; position: absolute; height: 22px; width: 22px; left: 3px; top: 3px; background: var(--fg); border-radius: 50%; transition: 0.15s; }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(22px); }
+
+  .disclaimer-list { padding-left: 20px; }
+  .disclaimer-list li { margin-bottom: 8px; }
+
+  /* --- Session screen --- */
+  #screen-session { padding: 0; position: relative; transition: background-color 0.5s ease; touch-action: none; }
+  #screen-session.phase-ready      { background: var(--bg2); }
+  #screen-session.phase-breathing  { background: #123A48; }
+  #screen-session.phase-retention  { background: #081820; }
+  #screen-session.phase-recovery   { background: #4A3216; }
+
+  .session-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 18px 18px 0;
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
+  .session-top button { background: rgba(0,0,0,0.28); color: var(--fg); border: none; border-radius: 10px; padding: 10px 14px; font-size: 0.9em; }
+  .round-indicator { font-size: 1.05em; color: rgba(255,255,255,0.85); padding-top: 12px; }
+
+  .session-view { display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+  #screen-session.phase-ready #view-ready,
+  #screen-session.phase-breathing #view-breathing,
+  #screen-session.phase-retention #view-retention,
+  #screen-session.phase-recovery #view-recovery { display: flex; }
+
+  .phase-title { font-size: 1.3em; font-weight: 700; margin-bottom: 6px; }
+  .phase-hint { color: rgba(255,255,255,0.75); font-size: 1em; max-width: 300px; margin-top: 10px; }
+
+  .ready-count { font-size: 5em; font-weight: 800; }
+
+  .breath-counter { font-size: 1.1em; color: rgba(255,255,255,0.8); margin-bottom: 18px; }
+  .pacer-wrap { width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
+  .pacer-circle {
+    width: 160px; height: 160px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--accent2), var(--accent));
+    transform: scale(0.55); will-change: transform;
+  }
+  .pacer-label { position: absolute; font-size: 1.15em; font-weight: 700; color: #06232C; }
+  .pacer-wrap { position: relative; }
+
+  .retention-clock { font-size: 4.2em; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .retention-sub { color: rgba(255,255,255,0.7); margin-top: 6px; }
+
+  .recovery-clock { font-size: 5em; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .progress-ring { height: 6px; width: 80%; max-width: 260px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; margin-top: 20px; }
+  .progress-ring .fill { height: 100%; background: rgba(255,255,255,0.85); width: 0%; }
+
+  /* --- Summary --- */
+  #screen-summary { align-items: stretch; }
+  .summary-hero { text-align: center; margin-bottom: 18px; }
+  .summary-hero .big { font-size: 1.6em; margin-bottom: 6px; }
+  .summary-hero .median { font-size: 2.4em; font-weight: 800; color: var(--accent2); }
+  .round-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .round-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; }
+  .round-item .label { color: var(--fg-dim); }
+  .round-item .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .badge-toast { background: var(--card-bg); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .badge-toast .t { font-weight: 700; color: var(--accent2); }
+
+  /* --- History / leaderboards --- */
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab-btn { flex: 1; background: var(--card-bg); border: 1px solid var(--border); color: var(--fg-dim); border-radius: 10px; padding: 10px; font-size: 0.9em; cursor: pointer; }
+  .tab-btn.active { color: #06232C; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .lb-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 6px; }
+  .lb-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+  .lb-rank { font-weight: 800; color: var(--fg-dim); width: 22px; }
+  .lb-item .lb-main { flex: 1; }
+  .lb-item .lb-val { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent2); }
+  .lb-item .lb-date { color: var(--fg-dim); font-size: 0.82em; }
+
+  #holds-chart { width: 100%; height: 110px; display: block; margin: 8px 0 4px; }
+
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .history-item .row1 { display: flex; justify-content: space-between; font-weight: 600; }
+  .history-item .row2 { display: flex; justify-content: space-between; color: var(--fg-dim); font-size: 0.85em; margin-top: 4px; }
+  .empty-hint { color: var(--fg-dim); text-align: center; margin-top: 30px; }
+
+  /* --- Cold exposure --- */
+  #screen-cold { align-items: center; justify-content: center; text-align: center; }
+  .cold-clock { font-size: 4em; font-weight: 800; font-variant-numeric: tabular-nums; margin: 20px 0; }
+  .cold-best { color: var(--fg-dim); margin-bottom: 24px; }
+
+  .confirm-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none;
+    align-items: center; justify-content: center; z-index: 50;
+  }
+  .confirm-backdrop.active { display: flex; }
+  .confirm-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 22px; width: 85%; max-width: 340px; }
+  .confirm-box p { margin: 0 0 18px; }
+  .confirm-box .buttons { display: flex; gap: 10px; }
+  .confirm-box .buttons button { flex: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Onboarding / Safety -->
+  <div id="screen-onboarding" class="screen active">
+    <h1>Willkommen bei Ice Breath</h1>
+    <p class="subtitle">Bevor es losgeht, kurz das Wichtigste.</p>
+    <div class="card">
+      <h3 style="margin-top:0">Sicherheit zuerst</h3>
+      <p>Die Wim-Hof-Atmung verändert kurzfristig deinen Kohlendioxidspiegel.
+      Leichtes Kribbeln, Schwindel oder ein Lichtgefühl während der
+      Power-Atemzüge oder direkt danach sind normal. Bitte trotzdem beachten:</p>
+      <ul class="disclaimer-list">
+        <li><strong>Niemals im oder am Wasser üben</strong> (Bad, Pool, See, Dusche) – Ohnmachtsgefahr.</li>
+        <li><strong>Niemals beim Autofahren, Radfahren oder Bedienen von Maschinen.</strong></li>
+        <li>Bei Epilepsie, Herz-Kreislauf-Erkrankungen, Schwangerschaft oder anderen
+        gesundheitlichen Einschränkungen vorher ärztlich abklären.</li>
+        <li>Bei starkem Schwindel, Herzrasen oder Unwohlsein die Übung sofort abbrechen.</li>
+        <li>Immer im Sitzen oder Liegen üben, nie im Stehen.</li>
+      </ul>
+      <p class="subtitle" style="margin-bottom:0">Diese Hinweise findest du jederzeit wieder unter Einstellungen.</p>
+    </div>
+    <div style="flex:1"></div>
+    <button class="primary" id="btn-onboarding-accept">Verstanden, los geht's</button>
+  </div>
+
+  <!-- Safety info (read-only, reachable from Settings) -->
+  <div id="screen-safety" class="screen">
+    <h2>Sicherheitshinweise</h2>
+    <div class="card">
+      <ul class="disclaimer-list">
+        <li><strong>Niemals im oder am Wasser üben</strong> (Bad, Pool, See, Dusche) – Ohnmachtsgefahr.</li>
+        <li><strong>Niemals beim Autofahren, Radfahren oder Bedienen von Maschinen.</strong></li>
+        <li>Bei Epilepsie, Herz-Kreislauf-Erkrankungen, Schwangerschaft oder anderen
+        gesundheitlichen Einschränkungen vorher ärztlich abklären.</li>
+        <li>Bei starkem Schwindel, Herzrasen oder Unwohlsein die Übung sofort abbrechen.</li>
+        <li>Immer im Sitzen oder Liegen üben, nie im Stehen.</li>
+      </ul>
+    </div>
+    <div style="flex:1"></div>
+    <button class="secondary" id="btn-safety-back">Zurück</button>
+  </div>
+
+  <!-- Home -->
+  <div id="screen-home" class="screen">
+    <h1>Ice Breath</h1>
+    <p class="subtitle">Wim-Hof-Atmung, offline &amp; privat</p>
+    <div id="streak-badge-wrap"></div>
+    <div class="card">
+      <div class="setting-label">Deine Session</div>
+      <div id="home-config-summary" style="font-size:1.1em; font-weight:600; margin-bottom:4px"></div>
+      <div id="home-config-detail" class="subtitle" style="margin-bottom:0"></div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="primary" id="btn-start-session">Session starten</button>
+    <div style="height:10px"></div>
+    <div class="bottom-nav">
+      <button class="icon-btn" id="btn-open-settings">Einstellungen</button>
+      <button class="icon-btn" id="btn-open-history">Verlauf &amp; Bestenliste</button>
+    </div>
+    <div style="height:10px"></div>
+    <button class="icon-btn" id="btn-open-cold">❄️ Kälte-Timer</button>
+  </div>
+
+  <!-- Settings -->
+  <div id="screen-settings" class="screen">
+    <h2>Einstellungen</h2>
+
+    <div class="card">
+      <div class="setting-label">Atemzüge pro Runde</div>
+      <div class="stepper">
+        <button data-step="breathsPerRound" data-dir="-1">−</button>
+        <span class="value" id="value-breathsPerRound">30</span>
+        <button data-step="breathsPerRound" data-dir="1">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="setting-label">Anzahl Runden</div>
+      <div class="stepper">
+        <button data-step="roundCount" data-dir="-1">−</button>
+        <span class="value" id="value-roundCount">3</span>
+        <button data-step="roundCount" data-dir="1">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="setting-label">Einatmen-Tempo</div>
+      <div class="stepper">
+        <button data-step="inhaleMs" data-dir="-1">−</button>
+        <span class="value" id="value-inhaleMs">1.5 s</span>
+        <button data-step="inhaleMs" data-dir="1">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="setting-label">Ausatmen-Tempo</div>
+      <div class="stepper">
+        <button data-step="exhaleMs" data-dir="-1">−</button>
+        <span class="value" id="value-exhaleMs">1.5 s</span>
+        <button data-step="exhaleMs" data-dir="1">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="setting-label">Erholungsatem halten</div>
+      <div class="stepper">
+        <button data-step="recoveryHoldSec" data-dir="-1">−</button>
+        <span class="value" id="value-recoveryHoldSec">15 s</span>
+        <button data-step="recoveryHoldSec" data-dir="1">+</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toggle-row">
+        <span>Ton</span>
+        <label class="switch"><input type="checkbox" id="toggle-sound"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span>Vibration</span>
+        <label class="switch"><input type="checkbox" id="toggle-vibration"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span>Helles Design</span>
+        <label class="switch"><input type="checkbox" id="toggle-light-theme"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <button class="secondary" id="btn-open-safety-from-settings">Sicherheitshinweise anzeigen</button>
+    <div style="height:10px"></div>
+    <button class="secondary danger" id="btn-clear-history">Verlauf &amp; Bestenlisten löschen</button>
+    <div style="height:10px"></div>
+    <button class="secondary" id="btn-settings-back">Zurück</button>
+  </div>
+
+  <!-- Session -->
+  <div id="screen-session" class="screen phase-ready">
+    <div class="session-top">
+      <button id="btn-cancel-session">✕ Abbrechen</button>
+      <span class="round-indicator" id="round-indicator"></span>
+    </div>
+
+    <div id="view-ready" class="session-view">
+      <div class="phase-title">Runde <span id="ready-round-num">1</span> beginnt</div>
+      <div class="ready-count" id="ready-count">3</div>
+      <div class="phase-hint">Setz dich bequem hin und mach es dir gemütlich.</div>
+    </div>
+
+    <div id="view-breathing" class="session-view">
+      <div class="breath-counter" id="breath-counter">Atemzug 1 / 30</div>
+      <div class="pacer-wrap">
+        <div class="pacer-circle" id="pacer-circle"></div>
+        <div class="pacer-label" id="pacer-label">Einatmen</div>
+      </div>
+      <div class="phase-hint">Tief durch die Nase oder den Mund einatmen, locker loslassen.</div>
+    </div>
+
+    <div id="view-retention" class="session-view">
+      <div class="phase-title">Atem anhalten</div>
+      <div class="retention-clock" id="retention-clock">0:00</div>
+      <div class="retention-sub">Tippe irgendwo, wenn du wieder einatmen möchtest</div>
+    </div>
+
+    <div id="view-recovery" class="session-view">
+      <div class="phase-title">Erholungsatem halten</div>
+      <div class="recovery-clock" id="recovery-clock">15</div>
+      <div class="progress-ring"><div class="fill" id="recovery-fill"></div></div>
+      <div class="phase-hint">Tief einatmen, füllen, halten.</div>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div id="screen-summary" class="screen">
+    <h2>Session beendet</h2>
+    <div class="summary-hero">
+      <div class="big">Median-Breath-Hold</div>
+      <div class="median" id="summary-median">0:00</div>
+    </div>
+    <div id="summary-badges"></div>
+    <div class="round-list" id="summary-rounds"></div>
+    <div class="card" style="text-align:center">
+      <div class="setting-label" style="margin-bottom:2px">Gesamtdauer</div>
+      <div style="font-size:1.3em; font-weight:700" id="summary-duration"></div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="primary" id="btn-summary-done">Fertig</button>
+  </div>
+
+  <!-- History / Leaderboards -->
+  <div id="screen-history" class="screen">
+    <h2>Verlauf &amp; Bestenliste</h2>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="leaderboards">Bestenliste</button>
+      <button class="tab-btn" data-tab="log">Verlauf</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-leaderboards">
+      <div class="card">
+        <div class="setting-label" style="margin-bottom:2px">Aktueller Streak</div>
+        <div style="font-size:1.6em; font-weight:800" id="lb-current-streak">0 Tage</div>
+        <div class="subtitle" style="margin:4px 0 0" id="lb-longest-streak"></div>
+      </div>
+
+      <h3>Median-Breath-Hold – beste Sessions</h3>
+      <div class="lb-list" id="lb-median-sessions"></div>
+
+      <h3>Median-Breath-Hold – bester Monat</h3>
+      <div class="lb-list" id="lb-median-months"></div>
+
+      <h3>Längste Session (Gesamtdauer)</h3>
+      <div class="lb-list" id="lb-longest-duration"></div>
+
+      <h3>Längster Einzel-Hold</h3>
+      <div class="lb-list" id="lb-longest-hold"></div>
+
+      <h3>Letzte Holds</h3>
+      <canvas id="holds-chart"></canvas>
+    </div>
+
+    <div class="tab-panel" id="tab-log">
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <div style="height:10px"></div>
+    <button class="secondary" id="btn-history-back">Zurück</button>
+  </div>
+
+  <!-- Cold exposure timer -->
+  <div id="screen-cold" class="screen">
+    <h2>Kälte-Timer</h2>
+    <p class="subtitle">Kalte Dusche oder Eisbad – optionale Ergänzung zur Atmung.</p>
+    <div class="cold-clock" id="cold-clock">0:00</div>
+    <div class="cold-best" id="cold-best"></div>
+    <button class="primary" id="btn-cold-toggle">Start</button>
+    <div style="height:10px"></div>
+    <button class="secondary" id="btn-cold-back">Zurück</button>
+  </div>
+
+</div>
+
+<div class="confirm-backdrop" id="confirm-backdrop">
+  <div class="confirm-box">
+    <p id="confirm-text">Wirklich?</p>
+    <div class="buttons">
+      <button class="secondary" id="confirm-no">Abbrechen</button>
+      <button class="secondary danger" id="confirm-yes">Ja</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var FAST = new URLSearchParams(location.search).get('fast') ? 10 : 1;
+
+  // ---------- Persistence ----------
+  function loadJSON(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return JSON.parse(raw);
+    } catch (e) { return fallback; }
+  }
+  function saveJSON(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+  }
+
+  var DEFAULT_SETTINGS = {
+    breathsPerRound: 30, roundCount: 3, inhaleMs: 1500, exhaleMs: 1500, recoveryHoldSec: 15,
+    soundOn: true, vibrationOn: true, lightTheme: false
+  };
+  var settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON('wimhof.settings.v1', {}));
+  var sessions = loadJSON('wimhof.sessions.v1', []);
+  var badgesSeen = loadJSON('wimhof.badgesSeen.v1', []);
+  var coldBestMs = loadJSON('wimhof.coldBest.v1', 0);
+
+  function persistSettings() { saveJSON('wimhof.settings.v1', settings); }
+  function persistSessions() { saveJSON('wimhof.sessions.v1', sessions); }
+  function persistBadgesSeen() { saveJSON('wimhof.badgesSeen.v1', badgesSeen); }
+  function persistColdBest() { saveJSON('wimhof.coldBest.v1', coldBestMs); }
+
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', settings.lightTheme ? 'light' : 'dark');
+  }
+  applyTheme();
+
+  // ---------- Formatting ----------
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function formatClock(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + ':' + pad2(s);
+  }
+  function formatClockMs(ms) { return formatClock(ms / 1000); }
+  function formatDurationLong(sec) {
+    sec = Math.max(0, Math.round(sec));
+    var h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+    if (h > 0) return h + ' Std ' + m + ' Min';
+    return m + ' Min';
+  }
+  function formatDateTime(epochMs) {
+    var d = new Date(epochMs);
+    return d.toLocaleDateString('de-DE') + ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }
+  function formatDate(epochMs) { return new Date(epochMs).toLocaleDateString('de-DE'); }
+
+  // ---------- Math helpers ----------
+  function median(nums) {
+    if (!nums.length) return 0;
+    var s = nums.slice().sort(function (a, b) { return a - b; });
+    var mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  }
+  function easeInOut(t) { return 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, t))); }
+
+  function dayKey(ms) {
+    var d = new Date(ms);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function dayKeyToLocalDate(k) {
+    var p = k.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2]);
+  }
+  function monthKey(ms) {
+    var d = new Date(ms);
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+  }
+  function monthKeyLabel(k) {
+    var p = k.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  }
+
+  // ---------- Audio ----------
+  var audioCtx = null, masterGain = null;
+  function audioInit() {
+    if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.5;
+      masterGain.connect(audioCtx.destination);
+    } catch (e) {}
+  }
+  function tone(f0, f1, dur, type, vol) {
+    if (!audioCtx || !settings.soundOn) return;
+    try {
+      var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.type = type || 'sine';
+      var now = audioCtx.currentTime;
+      osc.frequency.setValueAtTime(f0, now);
+      if (f1 && f1 !== f0) osc.frequency.linearRampToValueAtTime(f1, now + dur);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(vol || 0.6, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      osc.connect(gain); gain.connect(masterGain);
+      osc.start(now); osc.stop(now + dur + 0.05);
+    } catch (e) {}
+  }
+  function cueInhale() { tone(330, 440, 0.3, 'sine', 0.45); }
+  function cueExhale() { tone(440, 300, 0.35, 'sine', 0.4); }
+  function cueHoldStart() { tone(220, 180, 0.7, 'sine', 0.5); }
+  function cueRecoveryTick() { tone(880, 880, 0.08, 'sine', 0.4); }
+  function cueRecoveryDone() { tone(660, 990, 0.5, 'sine', 0.55); }
+  function cueSessionDone() { tone(660, 220, 0.9, 'sine', 0.6); }
+  function cueBadge() { tone(523, 784, 0.45, 'triangle', 0.5); }
+
+  // ---------- Vibration ----------
+  function vibrate(pattern) {
+    if (!settings.vibrationOn) return;
+    if (!('vibrate' in navigator)) return;
+    try { navigator.vibrate(pattern); } catch (e) {}
+  }
+  var VIB = {
+    inhale: [50], exhale: [25], holdStart: [200, 80, 200],
+    recoveryTick: [15], recoveryDone: [300, 100, 300, 100, 300],
+    sessionDone: [400, 150, 400, 150, 400, 150, 800]
+  };
+
+  // ---------- Wake Lock (backup only; FLAG_KEEP_SCREEN_ON in MainActivity is primary) ----------
+  var wakeLock = null;
+  function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function (wl) { wakeLock = wl; }).catch(function () {});
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && state.screen === 'session' && session) requestWakeLock();
+  });
+
+  // ---------- Confirm dialog ----------
+  function confirmDialog(text, onYes) {
+    var backdrop = document.getElementById('confirm-backdrop');
+    document.getElementById('confirm-text').textContent = text;
+    backdrop.classList.add('active');
+    function cleanup() { backdrop.classList.remove('active'); yesBtn.onclick = null; noBtn.onclick = null; }
+    var yesBtn = document.getElementById('confirm-yes'), noBtn = document.getElementById('confirm-no');
+    yesBtn.onclick = function () { cleanup(); onYes(); };
+    noBtn.onclick = function () { cleanup(); };
+  }
+
+  // ---------- App / navigation state ----------
+  var state = { screen: 'home' };
+
+  function showScreen(name, opts) {
+    opts = opts || {};
+    document.querySelectorAll('.screen').forEach(function (el) { el.classList.remove('active'); });
+    document.getElementById('screen-' + name).classList.add('active');
+    state.screen = name;
+    if (opts.pushHistory !== false && name !== 'home') {
+      try { history.pushState({ screen: name }, ''); } catch (e) {}
+    }
+  }
+
+  window.addEventListener('popstate', function () {
+    if (state.screen === 'session' && session) {
+      try { history.pushState({ screen: 'session' }, ''); } catch (e) {}
+      cancelSession();
+      return;
+    }
+    showScreen('home', { pushHistory: false });
+    renderHome();
+  });
+
+  // ---------- Badges ----------
+  var BADGES = [
+    { id: 'first_session', label: 'Erste Session gemeistert', check: function (ctx) { return ctx.sessions.length >= 1; } },
+    { id: 'ten_sessions', label: '10 Sessions absolviert', check: function (ctx) { return ctx.sessions.length >= 10; } },
+    { id: 'streak_7', label: '7 Tage Streak', check: function (ctx) { return ctx.longestStreak >= 7; } },
+    { id: 'streak_30', label: '30 Tage Streak', check: function (ctx) { return ctx.longestStreak >= 30; } },
+    { id: 'hold_2min', label: 'Über 2 Minuten Atem angehalten', check: function (ctx) { return ctx.bestHoldMs >= 120000; } },
+    { id: 'hold_3min', label: 'Über 3 Minuten Atem angehalten', check: function (ctx) { return ctx.bestHoldMs >= 180000; } }
+  ];
+  function computeBadgeContext() {
+    var bestHoldMs = 0;
+    sessions.forEach(function (s) { if (s.longestRetentionMs > bestHoldMs) bestHoldMs = s.longestRetentionMs; });
+    return { sessions: sessions, longestStreak: longestStreak(), bestHoldMs: bestHoldMs };
+  }
+  function updateBadgesAfterSession() {
+    var ctx = computeBadgeContext();
+    var newly = [];
+    BADGES.forEach(function (b) {
+      if (b.check(ctx) && badgesSeen.indexOf(b.id) === -1) {
+        badgesSeen.push(b.id);
+        newly.push(b);
+      }
+    });
+    if (newly.length) persistBadgesSeen();
+    return newly;
+  }
+
+  // ---------- Streak ----------
+  function distinctSortedDayKeys() {
+    var set = {};
+    sessions.forEach(function (s) { set[dayKey(s.endedAt)] = true; });
+    return Object.keys(set).sort();
+  }
+  function longestStreak() {
+    var days = distinctSortedDayKeys(), best = 0, cur = 0, prev = null;
+    days.forEach(function (k) {
+      var d = dayKeyToLocalDate(k);
+      cur = (prev && Math.round((d - prev) / 86400000) === 1) ? cur + 1 : 1;
+      prev = d;
+      if (cur > best) best = cur;
+    });
+    return best;
+  }
+  function currentStreak() {
+    var days = distinctSortedDayKeys();
+    if (!days.length) return 0;
+    var todayKey = dayKey(Date.now());
+    var gapFromToday = Math.round((dayKeyToLocalDate(todayKey) - dayKeyToLocalDate(days[days.length - 1])) / 86400000);
+    if (gapFromToday > 1) return 0;
+    var cur = 1;
+    for (var i = days.length - 1; i > 0; i--) {
+      var gap = Math.round((dayKeyToLocalDate(days[i]) - dayKeyToLocalDate(days[i - 1])) / 86400000);
+      if (gap === 1) cur++; else break;
+    }
+    return cur;
+  }
+
+  // ---------- Leaderboards ----------
+  function sessionMedianRetentionMs(s) {
+    if (typeof s.medianRetentionMs === 'number') return s.medianRetentionMs;
+    return median(s.rounds.map(function (r) { return r.retentionMs; }));
+  }
+  function sessionLongestRetentionMs(s) {
+    if (typeof s.longestRetentionMs === 'number') return s.longestRetentionMs;
+    return Math.max.apply(null, s.rounds.map(function (r) { return r.retentionMs; }).concat([0]));
+  }
+  function sessionTotalDurationMs(s) {
+    if (typeof s.totalDurationMs === 'number') return s.totalDurationMs;
+    return s.endedAt - s.startedAt;
+  }
+  function topSessionsByMedian(n) {
+    return sessions.slice().sort(function (a, b) { return sessionMedianRetentionMs(b) - sessionMedianRetentionMs(a); }).slice(0, n);
+  }
+  function topSessionsByDuration(n) {
+    return sessions.slice().sort(function (a, b) { return sessionTotalDurationMs(b) - sessionTotalDurationMs(a); }).slice(0, n);
+  }
+  function topSessionsByLongestHold(n) {
+    return sessions.slice().sort(function (a, b) { return sessionLongestRetentionMs(b) - sessionLongestRetentionMs(a); }).slice(0, n);
+  }
+  function bestMedianByMonth() {
+    var map = {};
+    sessions.forEach(function (s) {
+      var k = monthKey(s.startedAt), med = sessionMedianRetentionMs(s);
+      if (!map[k] || med > map[k].bestMedianMs) map[k] = { monthKey: k, bestMedianMs: med, sessionId: s.id };
+    });
+    return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.monthKey.localeCompare(a.monthKey); });
+  }
+
+  // ---------- Session state machine ----------
+  var session = null;
+  var READY_MS = 3000;
+
+  function newSessionState(cfg) {
+    return {
+      config: cfg, startedAt: Date.now(), roundIndex: 0, phase: 'ready',
+      phaseStartEpoch: Date.now(), breathIndex: -1, breathSubPhase: null,
+      retentionStartEpoch: 0, rounds: [], _lastRetentionSecShown: null
+    };
+  }
+  function phaseElapsedMs() { return Date.now() - session.phaseStartEpoch; }
+
+  function startSession() {
+    var cfg = {
+      breathsPerRound: settings.breathsPerRound, roundCount: settings.roundCount,
+      inhaleMs: settings.inhaleMs, exhaleMs: settings.exhaleMs, recoveryHoldSec: settings.recoveryHoldSec
+    };
+    session = newSessionState(cfg);
+    audioInit();
+    requestWakeLock();
+    showScreen('session');
+    renderRoundIndicator();
+    document.getElementById('ready-round-num').textContent = '1';
+  }
+
+  function renderRoundIndicator() {
+    document.getElementById('round-indicator').textContent =
+      'Runde ' + (session.roundIndex + 1) + '/' + session.config.roundCount;
+  }
+
+  function tickReady() {
+    var elapsed = phaseElapsedMs() * FAST;
+    var remaining = Math.max(0, Math.ceil((READY_MS - elapsed) / 1000));
+    document.getElementById('ready-count').textContent = String(Math.max(1, remaining));
+    if (elapsed >= READY_MS) beginRound();
+  }
+
+  function beginRound() {
+    session.phaseStartEpoch = Date.now();
+    session.breathIndex = -1;
+    session.breathSubPhase = null;
+    session.phase = 'breathing';
+    document.getElementById('screen-session').className = 'screen active phase-breathing';
+    renderRoundIndicator();
+  }
+
+  function tickBreathing() {
+    var cfg = session.config;
+    var elapsed = phaseElapsedMs() * FAST;
+    var cycleMs = cfg.inhaleMs + cfg.exhaleMs;
+    var totalMs = cfg.breathsPerRound * cycleMs;
+    if (elapsed >= totalMs) { beginRetention(); return; }
+    var idx = Math.min(cfg.breathsPerRound - 1, Math.floor(elapsed / cycleMs));
+    var inCycle = elapsed - idx * cycleMs;
+    var subPhase = inCycle < cfg.inhaleMs ? 'inhale' : 'exhale';
+    if (idx !== session.breathIndex || subPhase !== session.breathSubPhase) {
+      session.breathIndex = idx;
+      session.breathSubPhase = subPhase;
+      fireBreathCue(subPhase);
+      document.getElementById('breath-counter').textContent =
+        'Atemzug ' + (idx + 1) + ' / ' + cfg.breathsPerRound;
+      document.getElementById('pacer-label').textContent = subPhase === 'inhale' ? 'Einatmen' : 'Loslassen';
+    }
+    var t = subPhase === 'inhale' ? inCycle / cfg.inhaleMs : (inCycle - cfg.inhaleMs) / cfg.exhaleMs;
+    var scale = subPhase === 'inhale'
+      ? 0.55 + 0.45 * easeInOut(t)
+      : 1.0 - 0.45 * easeInOut(t);
+    document.getElementById('pacer-circle').style.transform = 'scale(' + scale.toFixed(3) + ')';
+  }
+  function fireBreathCue(subPhase) {
+    if (subPhase === 'inhale') { cueInhale(); vibrate(VIB.inhale); }
+    else { cueExhale(); vibrate(VIB.exhale); }
+  }
+
+  function beginRetention() {
+    session.phase = 'retention';
+    session.retentionStartEpoch = Date.now();
+    session._lastRetentionSecShown = -1;
+    document.getElementById('screen-session').className = 'screen active phase-retention';
+    document.getElementById('retention-clock').textContent = '0:00';
+    cueHoldStart(); vibrate(VIB.holdStart);
+  }
+  function renderRetentionTick() {
+    var elapsedMs = (Date.now() - session.retentionStartEpoch) * FAST;
+    var sec = Math.floor(elapsedMs / 1000);
+    if (sec !== session._lastRetentionSecShown) {
+      session._lastRetentionSecShown = sec;
+      document.getElementById('retention-clock').textContent = formatClock(sec);
+    }
+  }
+  function endRetention() {
+    if (!session || session.phase !== 'retention') return;
+    var retentionMs = (Date.now() - session.retentionStartEpoch) * FAST;
+    session.rounds.push({ retentionMs: Math.round(retentionMs), recoveryHoldMs: 0, breathsCompleted: session.config.breathsPerRound });
+    beginRecoveryHold();
+  }
+
+  function beginRecoveryHold() {
+    session.phase = 'recoveryHold';
+    session.phaseStartEpoch = Date.now();
+    session._lastRecoveryTickSec = null;
+    document.getElementById('screen-session').className = 'screen active phase-recovery';
+    document.getElementById('recovery-clock').textContent = String(session.config.recoveryHoldSec);
+    document.getElementById('recovery-fill').style.width = '0%';
+  }
+  function tickRecoveryHold() {
+    var cfg = session.config;
+    var elapsedMs = phaseElapsedMs() * FAST;
+    var totalMs = cfg.recoveryHoldSec * 1000;
+    var remainingMs = Math.max(0, totalMs - elapsedMs);
+    var remainingSec = Math.ceil(remainingMs / 1000);
+    document.getElementById('recovery-clock').textContent = String(remainingSec);
+    document.getElementById('recovery-fill').style.width = (Math.min(1, elapsedMs / totalMs) * 100) + '%';
+    if (remainingSec <= 3 && remainingSec >= 1 && remainingSec !== session._lastRecoveryTickSec) {
+      session._lastRecoveryTickSec = remainingSec;
+      cueRecoveryTick(); vibrate(VIB.recoveryTick);
+    }
+    if (elapsedMs >= totalMs) endRecoveryHold();
+  }
+  function endRecoveryHold() {
+    cueRecoveryDone(); vibrate(VIB.recoveryDone);
+    session.rounds[session.rounds.length - 1].recoveryHoldMs = session.config.recoveryHoldSec * 1000;
+    var isLast = session.roundIndex >= session.config.roundCount - 1;
+    if (isLast) { finishSession(); }
+    else {
+      session.roundIndex++;
+      beginRound();
+    }
+  }
+
+  function finishSession() {
+    releaseWakeLock();
+    cueSessionDone(); vibrate(VIB.sessionDone);
+    var endedAt = Date.now();
+    var retentions = session.rounds.map(function (r) { return r.retentionMs; });
+    var record = {
+      id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      startedAt: session.startedAt, endedAt: endedAt,
+      config: session.config, rounds: session.rounds,
+      medianRetentionMs: median(retentions),
+      longestRetentionMs: Math.max.apply(null, retentions.concat([0])),
+      totalDurationMs: endedAt - session.startedAt
+    };
+    sessions.push(record);
+    persistSessions();
+    var newBadges = updateBadgesAfterSession();
+    session = null;
+    renderSummary(record, newBadges);
+    showScreen('summary');
+  }
+
+  function cancelSession() {
+    confirmDialog('Session wirklich abbrechen? Der Fortschritt wird nicht gespeichert.', function () {
+      releaseWakeLock();
+      session = null;
+      showScreen('home', { pushHistory: false });
+      renderHome();
+    });
+  }
+
+  // ---------- Session render loop ----------
+  function loop() {
+    requestAnimationFrame(loop);
+    if (state.screen !== 'session' || !session) return;
+    if (session.phase === 'ready') tickReady();
+    else if (session.phase === 'breathing') tickBreathing();
+    else if (session.phase === 'retention') renderRetentionTick();
+    else if (session.phase === 'recoveryHold') tickRecoveryHold();
+  }
+  requestAnimationFrame(loop);
+
+  document.getElementById('screen-session').addEventListener('click', function (e) {
+    if (!session || session.phase !== 'retention') return;
+    if (e.target.closest('#btn-cancel-session')) return;
+    endRetention();
+  });
+
+  // ---------- Home ----------
+  function renderHome() {
+    var cur = currentStreak();
+    var wrap = document.getElementById('streak-badge-wrap');
+    wrap.innerHTML = cur > 0
+      ? '<div class="streak-badge">🔥 <span class="n">' + cur + '</span> Tage Streak</div>'
+      : '';
+    document.getElementById('home-config-summary').textContent =
+      settings.roundCount + ' Runden × ' + settings.breathsPerRound + ' Atemzüge';
+    document.getElementById('home-config-detail').textContent =
+      (settings.inhaleMs / 1000) + 's ein / ' + (settings.exhaleMs / 1000) + 's aus · ' +
+      settings.recoveryHoldSec + 's Erholungsatem-Halt';
+  }
+
+  // ---------- Settings ----------
+  var SETTINGS_STEPPER_META = {
+    breathsPerRound: { step: 5, min: 10, max: 60, display: function (v) { return String(v); } },
+    roundCount: { step: 1, min: 1, max: 6, display: function (v) { return String(v); } },
+    inhaleMs: { step: 250, min: 500, max: 4000, display: function (v) { return (v / 1000) + ' s'; } },
+    exhaleMs: { step: 250, min: 500, max: 4000, display: function (v) { return (v / 1000) + ' s'; } },
+    recoveryHoldSec: { step: 5, min: 5, max: 30, display: function (v) { return v + ' s'; } }
+  };
+  function renderSettings() {
+    Object.keys(SETTINGS_STEPPER_META).forEach(function (key) {
+      document.getElementById('value-' + key).textContent = SETTINGS_STEPPER_META[key].display(settings[key]);
+    });
+    document.getElementById('toggle-sound').checked = settings.soundOn;
+    document.getElementById('toggle-vibration').checked = settings.vibrationOn;
+    document.getElementById('toggle-light-theme').checked = settings.lightTheme;
+  }
+  document.querySelectorAll('#screen-settings button[data-step]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var key = btn.getAttribute('data-step');
+      var dir = parseInt(btn.getAttribute('data-dir'), 10);
+      var meta = SETTINGS_STEPPER_META[key];
+      settings[key] = Math.max(meta.min, Math.min(meta.max, settings[key] + dir * meta.step));
+      persistSettings();
+      renderSettings();
+    });
+  });
+  document.getElementById('toggle-sound').addEventListener('change', function (e) { settings.soundOn = e.target.checked; persistSettings(); });
+  document.getElementById('toggle-vibration').addEventListener('change', function (e) { settings.vibrationOn = e.target.checked; persistSettings(); });
+  document.getElementById('toggle-light-theme').addEventListener('change', function (e) { settings.lightTheme = e.target.checked; persistSettings(); applyTheme(); });
+  document.getElementById('btn-clear-history').addEventListener('click', function () {
+    confirmDialog('Gesamten Verlauf und alle Bestenlisten löschen?', function () {
+      sessions = []; badgesSeen = [];
+      persistSessions(); persistBadgesSeen();
+      renderHistory(); renderHome();
+    });
+  });
+
+  // ---------- Summary ----------
+  function renderSummary(record, newBadges) {
+    document.getElementById('summary-median').textContent = formatClockMs(record.medianRetentionMs);
+    var badgeWrap = document.getElementById('summary-badges');
+    badgeWrap.innerHTML = '';
+    if (newBadges.length) {
+      cueBadge();
+      newBadges.forEach(function (b) {
+        var el = document.createElement('div');
+        el.className = 'badge-toast';
+        el.innerHTML = '<div class="t">🏅 Neuer Erfolg</div><div>' + b.label + '</div>';
+        badgeWrap.appendChild(el);
+      });
+    }
+    var list = document.getElementById('summary-rounds');
+    list.innerHTML = '';
+    record.rounds.forEach(function (r, i) {
+      var item = document.createElement('div');
+      item.className = 'round-item';
+      item.innerHTML = '<span class="label">Runde ' + (i + 1) + '</span><span class="val">' + formatClockMs(r.retentionMs) + '</span>';
+      list.appendChild(item);
+    });
+    document.getElementById('summary-duration').textContent = formatDurationLong(record.totalDurationMs / 1000);
+  }
+
+  // ---------- History / Leaderboards ----------
+  function renderLbList(elId, items, valueFn, dateFn) {
+    var el = document.getElementById(elId);
+    el.innerHTML = '';
+    if (!items.length) { el.innerHTML = '<div class="empty-hint">Noch keine Daten.</div>'; return; }
+    items.forEach(function (item, i) {
+      var row = document.createElement('div');
+      row.className = 'lb-item';
+      row.innerHTML =
+        '<span class="lb-rank">' + (i + 1) + '</span>' +
+        '<span class="lb-main"><span class="lb-date">' + dateFn(item) + '</span></span>' +
+        '<span class="lb-val">' + valueFn(item) + '</span>';
+      el.appendChild(row);
+    });
+  }
+
+  function renderHoldsChart() {
+    var canvas = document.getElementById('holds-chart');
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = canvas.clientWidth || 300, cssH = 110;
+    canvas.width = cssW * dpr; canvas.height = cssH * dpr;
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var holds = [];
+    sessions.slice(-6).forEach(function (s) { s.rounds.forEach(function (r) { holds.push(r.retentionMs); }); });
+    holds = holds.slice(-14);
+    if (!holds.length) return;
+    var max = Math.max.apply(null, holds);
+    var barW = canvas.width / holds.length;
+    var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3FB8C4';
+    ctx.fillStyle = accent;
+    holds.forEach(function (ms, i) {
+      var barH = max > 0 ? (ms / max) * (canvas.height - 8 * dpr) : 0;
+      var x = i * barW + barW * 0.15, w = barW * 0.7;
+      ctx.fillRect(x, canvas.height - barH, w, barH);
+    });
+  }
+
+  function renderHistory() {
+    document.getElementById('lb-current-streak').textContent = currentStreak() + ' Tage';
+    var longest = longestStreak();
+    document.getElementById('lb-longest-streak').textContent = 'Bestwert: ' + longest + ' Tage';
+
+    renderLbList('lb-median-sessions', topSessionsByMedian(5),
+      function (s) { return formatClockMs(sessionMedianRetentionMs(s)); },
+      function (s) { return formatDateTime(s.startedAt); });
+
+    renderLbList('lb-median-months', bestMedianByMonth().slice(0, 6),
+      function (m) { return formatClockMs(m.bestMedianMs); },
+      function (m) { return monthKeyLabel(m.monthKey); });
+
+    renderLbList('lb-longest-duration', topSessionsByDuration(5),
+      function (s) { return formatDurationLong(sessionTotalDurationMs(s) / 1000); },
+      function (s) { return formatDateTime(s.startedAt); });
+
+    renderLbList('lb-longest-hold', topSessionsByLongestHold(5),
+      function (s) { return formatClockMs(sessionLongestRetentionMs(s)); },
+      function (s) { return formatDateTime(s.startedAt); });
+
+    renderHoldsChart();
+
+    var list = document.getElementById('history-list');
+    list.innerHTML = '';
+    if (!sessions.length) {
+      list.innerHTML = '<div class="empty-hint">Noch keine Sessions aufgezeichnet.</div>';
+    } else {
+      sessions.slice().reverse().forEach(function (s) {
+        var item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML =
+          '<div class="row1"><span>' + s.config.roundCount + ' Runden</span><span>Median ' + formatClockMs(sessionMedianRetentionMs(s)) + '</span></div>' +
+          '<div class="row2"><span>' + formatDateTime(s.startedAt) + '</span><span>' + formatDurationLong(sessionTotalDurationMs(s) / 1000) + '</span></div>';
+        list.appendChild(item);
+      });
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('active');
+    });
+  });
+
+  // ---------- Cold exposure timer ----------
+  var cold = { running: false, startEpoch: 0, timer: null };
+  function renderColdBest() {
+    document.getElementById('cold-best').textContent = coldBestMs > 0 ? 'Bestzeit: ' + formatClockMs(coldBestMs) : 'Noch keine Bestzeit';
+  }
+  function coldTick() {
+    var elapsed = Date.now() - cold.startEpoch;
+    document.getElementById('cold-clock').textContent = formatClockMs(elapsed);
+  }
+  function toggleCold() {
+    var btn = document.getElementById('btn-cold-toggle');
+    if (!cold.running) {
+      cold.running = true; cold.startEpoch = Date.now();
+      cold.timer = setInterval(coldTick, 200);
+      btn.textContent = 'Stop'; btn.classList.add('danger');
+    } else {
+      cold.running = false; clearInterval(cold.timer);
+      var elapsed = Date.now() - cold.startEpoch;
+      if (elapsed > coldBestMs) { coldBestMs = elapsed; persistColdBest(); }
+      renderColdBest();
+      btn.textContent = 'Start'; btn.classList.remove('danger');
+    }
+  }
+
+  // ---------- Navigation wiring ----------
+  document.getElementById('btn-onboarding-accept').addEventListener('click', function () {
+    saveJSON('wimhof.onboardingAccepted.v1', '1');
+    showScreen('home', { pushHistory: false });
+    renderHome();
+  });
+  document.getElementById('btn-open-safety-from-settings').addEventListener('click', function () { showScreen('safety'); });
+  document.getElementById('btn-safety-back').addEventListener('click', function () { showScreen('settings', { pushHistory: false }); });
+
+  document.getElementById('btn-open-settings').addEventListener('click', function () { renderSettings(); showScreen('settings'); });
+  document.getElementById('btn-open-history').addEventListener('click', function () { renderHistory(); showScreen('history'); });
+  document.getElementById('btn-open-cold').addEventListener('click', function () { renderColdBest(); showScreen('cold'); });
+  document.getElementById('btn-settings-back').addEventListener('click', function () { showScreen('home', { pushHistory: false }); renderHome(); });
+  document.getElementById('btn-history-back').addEventListener('click', function () { showScreen('home', { pushHistory: false }); renderHome(); });
+  document.getElementById('btn-cold-back').addEventListener('click', function () {
+    if (cold.running) toggleCold();
+    showScreen('home', { pushHistory: false }); renderHome();
+  });
+  document.getElementById('btn-cold-toggle').addEventListener('click', toggleCold);
+  document.getElementById('btn-start-session').addEventListener('click', startSession);
+  document.getElementById('btn-cancel-session').addEventListener('click', cancelSession);
+  document.getElementById('btn-summary-done').addEventListener('click', function () {
+    showScreen('home', { pushHistory: false }); renderHome();
+  });
+
+  // ---------- Init ----------
+  var onboardingAccepted = loadJSON('wimhof.onboardingAccepted.v1', null);
+  if (onboardingAccepted === '1') {
+    showScreen('home', { pushHistory: false });
+    renderHome();
+  } else {
+    showScreen('onboarding', { pushHistory: false });
+  }
+})();
+</script>
+</body>
+</html>
