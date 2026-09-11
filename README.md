@@ -38,9 +38,14 @@ zusaetzlich als Web-Asset in die APK.
 ## Ablauf einer Session
 
 Eine Runde: `Bereit (3s)` → `Power-Atmung` (konfigurierbare Anzahl
-Atemzuege, Tempo einstellbar) → `Atem anhalten` (offenes Stoppuhr, endet
-per Tap irgendwo auf dem Bildschirm) → `Erholungsatem halten`
-(Countdown, Standard 15s) → naechste Runde oder Zusammenfassung.
+Atemzuege, Tempo einstellbar; ab der Haelfte der Atemzuege optional per
+Tap vorzeitig in den Atem-Halt wechseln) → `Atem anhalten` (offenes
+Stoppuhr, endet per Tap irgendwo auf dem Bildschirm) → `Erholungsatem
+halten` (Countdown, Standard 15s) → kurzer `Ausatmen`-Uebergang (~2.5s,
+nur zwischen Runden) → naechste Runde oder Zusammenfassung.
+
+Der Pacer-Kreis wechselt beim Einatmen/Ausatmen die Farbe (Cyan ↔ Gruen)
+als zusaetzliches visuelles Signal zum Wachsen/Schrumpfen.
 
 Ein Abbrechen mitten in der Session (Button oder Android-Zurueck) fragt
 per Bestaetigungsdialog nach und verwirft die Session komplett - sie wird

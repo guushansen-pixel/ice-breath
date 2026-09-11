@@ -112,6 +112,7 @@
   #screen-session.phase-breathing  { background: #123A48; }
   #screen-session.phase-retention  { background: #081820; }
   #screen-session.phase-recovery   { background: #4A3216; }
+  #screen-session.phase-exhale     { background: #123A2E; }
 
   .session-top {
     display: flex; justify-content: space-between; align-items: flex-start;
@@ -125,7 +126,8 @@
   #screen-session.phase-ready #view-ready,
   #screen-session.phase-breathing #view-breathing,
   #screen-session.phase-retention #view-retention,
-  #screen-session.phase-recovery #view-recovery { display: flex; }
+  #screen-session.phase-recovery #view-recovery,
+  #screen-session.phase-exhale #view-exhale { display: flex; }
 
   .phase-title { font-size: 1.3em; font-weight: 700; margin-bottom: 6px; }
   .phase-hint { color: rgba(255,255,255,0.75); font-size: 1em; max-width: 300px; margin-top: 10px; }
@@ -133,14 +135,24 @@
   .ready-count { font-size: 5em; font-weight: 800; }
 
   .breath-counter { font-size: 1.1em; color: rgba(255,255,255,0.8); margin-bottom: 18px; }
-  .pacer-wrap { width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
+  .pacer-wrap { width: 280px; height: 280px; display: flex; align-items: center; justify-content: center; position: relative; }
   .pacer-circle {
-    width: 160px; height: 160px; border-radius: 50%;
+    width: 220px; height: 220px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, var(--accent2), var(--accent));
-    transform: scale(0.55); will-change: transform;
+    transform: scale(0.55); will-change: transform, background;
+    transition: background 0.4s ease;
   }
-  .pacer-label { position: absolute; font-size: 1.15em; font-weight: 700; color: #06232C; }
-  .pacer-wrap { position: relative; }
+  .pacer-circle.sub-exhale {
+    background: radial-gradient(circle at 35% 30%, #B7ECC8, #4FBE84);
+  }
+  .pacer-label { position: absolute; font-size: 1.2em; font-weight: 700; color: #06232C; }
+
+  .exhale-circle {
+    width: 160px; height: 160px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #B7ECC8, #4FBE84);
+    transform: scale(1); transition: transform linear;
+    margin-bottom: 20px;
+  }
 
   .retention-clock { font-size: 4.2em; font-weight: 800; font-variant-numeric: tabular-nums; }
   .retention-sub { color: rgba(255,255,255,0.7); margin-top: 6px; }
@@ -350,6 +362,7 @@
         <div class="pacer-label" id="pacer-label">Einatmen</div>
       </div>
       <div class="phase-hint">Tief durch die Nase oder den Mund einatmen, locker loslassen.</div>
+      <div class="phase-hint" id="breathing-skip-hint" style="display:none">Bereit? Irgendwo antippen, um jetzt schon in den Atem-Halt zu gehen.</div>
     </div>
 
     <div id="view-retention" class="session-view">
@@ -363,6 +376,12 @@
       <div class="recovery-clock" id="recovery-clock">15</div>
       <div class="progress-ring"><div class="fill" id="recovery-fill"></div></div>
       <div class="phase-hint">Tief einatmen, füllen, halten.</div>
+    </div>
+
+    <div id="view-exhale" class="session-view">
+      <div class="exhale-circle" id="exhale-circle"></div>
+      <div class="phase-title">Ausatmen</div>
+      <div class="phase-hint">Runde <span id="exhale-next-round">2</span> beginnt gleich.</div>
     </div>
   </div>
 
@@ -465,7 +484,7 @@
 
   var DEFAULT_SETTINGS = {
     breathsPerRound: 30, roundCount: 3, inhaleMs: 1500, exhaleMs: 1500, recoveryHoldSec: 15,
-    soundOn: true, vibrationOn: true, lightTheme: false
+    soundOn: true, vibrationOn: false, lightTheme: false
   };
   var settings = Object.assign({}, DEFAULT_SETTINGS, loadJSON('wimhof.settings.v1', {}));
   var sessions = loadJSON('wimhof.sessions.v1', []);
@@ -753,8 +772,14 @@
     session.breathSubPhase = null;
     session.phase = 'breathing';
     document.getElementById('screen-session').className = 'screen active phase-breathing';
+    document.getElementById('breathing-skip-hint').style.display = 'none';
     renderRoundIndicator();
   }
+
+  // Ab der Haelfte der konfigurierten Atemzuege darf man optional per Tap
+  // schon in den Atem-Halt wechseln, statt die volle Rundenzahl abzuwarten -
+  // bei den WHM-Standard-30 Atemzuegen also ab Atemzug ~15.
+  function breathingSkipThreshold(cfg) { return Math.max(1, Math.ceil(cfg.breathsPerRound / 2)); }
 
   function tickBreathing() {
     var cfg = session.config;
@@ -772,6 +797,9 @@
       document.getElementById('breath-counter').textContent =
         'Atemzug ' + (idx + 1) + ' / ' + cfg.breathsPerRound;
       document.getElementById('pacer-label').textContent = subPhase === 'inhale' ? 'Einatmen' : 'Loslassen';
+      document.getElementById('pacer-circle').classList.toggle('sub-exhale', subPhase === 'exhale');
+      document.getElementById('breathing-skip-hint').style.display =
+        (idx + 1) >= breathingSkipThreshold(cfg) ? 'block' : 'none';
     }
     var t = subPhase === 'inhale' ? inCycle / cfg.inhaleMs : (inCycle - cfg.inhaleMs) / cfg.exhaleMs;
     var scale = subPhase === 'inhale'
@@ -836,8 +864,30 @@
     if (isLast) { finishSession(); }
     else {
       session.roundIndex++;
-      beginRound();
+      beginExhaleGap();
     }
+  }
+
+  // Nach dem Erholungsatem-Halt muss erst ausgeatmet werden, bevor die
+  // naechste Runde Power-Atmung beginnt - sonst faengt sie mitten in der
+  // gehaltenen Einatmung an.
+  var EXHALE_GAP_MS = 2500;
+  function beginExhaleGap() {
+    session.phase = 'exhaleGap';
+    session.phaseStartEpoch = Date.now();
+    document.getElementById('screen-session').className = 'screen active phase-exhale';
+    renderRoundIndicator();
+    document.getElementById('exhale-next-round').textContent = String(session.roundIndex + 1);
+    var circle = document.getElementById('exhale-circle');
+    circle.style.transition = 'none';
+    circle.style.transform = 'scale(1)';
+    void circle.offsetWidth;
+    circle.style.transition = 'transform ' + (EXHALE_GAP_MS / 1000) + 's linear';
+    circle.style.transform = 'scale(0.5)';
+  }
+  function tickExhaleGap() {
+    var elapsed = phaseElapsedMs() * FAST;
+    if (elapsed >= EXHALE_GAP_MS) beginRound();
   }
 
   function finishSession() {
@@ -878,13 +928,17 @@
     else if (session.phase === 'breathing') tickBreathing();
     else if (session.phase === 'retention') renderRetentionTick();
     else if (session.phase === 'recoveryHold') tickRecoveryHold();
+    else if (session.phase === 'exhaleGap') tickExhaleGap();
   }
   requestAnimationFrame(loop);
 
   document.getElementById('screen-session').addEventListener('click', function (e) {
-    if (!session || session.phase !== 'retention') return;
+    if (!session) return;
     if (e.target.closest('#btn-cancel-session')) return;
-    endRetention();
+    if (session.phase === 'retention') { endRetention(); return; }
+    if (session.phase === 'breathing' && (session.breathIndex + 1) >= breathingSkipThreshold(session.config)) {
+      beginRetention();
+    }
   });
 
   // ---------- Home ----------

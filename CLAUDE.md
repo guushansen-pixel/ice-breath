@@ -56,5 +56,13 @@ Kaelte-Timer, Sicherheitshinweise. Im Browser durchgetestet (Session-Ablauf,
 Persistenz nach Reload unter echter http-Origin, Leaderboard-/Streak-Mathe
 mit synthetischen Mehrtages-Daten). Debug- und signierte Release-APK bauen
 erfolgreich durch `build.ps1`; per `aapt2 dump badging`/`xmltree` verifiziert:
-nur VIBRATE-Permission (kein INTERNET), Portrait-Lock gesetzt. Geraetetest
-auf dem Pixel 11 Pro (Vibration, Keep-Screen-On, Force-Dark) steht noch aus.
+nur VIBRATE-Permission (kein INTERNET), Portrait-Lock gesetzt.
+
+Erster echter Geraetetest auf dem Pixel 11 Pro erfolgreich (Session lief
+durch, Summary/Badge korrekt). Daraus resultierendes Feedback bereits
+eingebaut: Vibration jetzt default aus, groesserer Pacer-Kreis, Kreis
+wechselt beim Ein-/Ausatmen die Farbe, kurzer Ausatmen-Uebergang zwischen
+den Runden (sonst startet die naechste Runde mitten in der gehaltenen
+Einatmung), sowie optionales vorzeitiges Antippen ab der Haelfte der
+Atemzuege, um direkt in den Atem-Halt zu wechseln. Naechster Schritt: diese
+Aenderungen nochmal auf dem Geraet gegenpruefen.
