@@ -66,3 +66,10 @@ den Runden (sonst startet die naechste Runde mitten in der gehaltenen
 Einatmung), sowie optionales vorzeitiges Antippen ab der Haelfte der
 Atemzuege, um direkt in den Atem-Halt zu wechseln. Naechster Schritt: diese
 Aenderungen nochmal auf dem Geraet gegenpruefen.
+
+Zusaetzlich behoben (2026-09-14, bei breathe-well entdeckt): die
+Zurueck-Wischgeste schloss waehrend einer aktiven Session die App direkt,
+statt den Abbrechen-Dialog zu zeigen (targetSdk 36 aktiviert Predictive
+Back, `onKeyDown` allein faengt die Geste nicht mehr ab). `build.ps1`
+registriert jetzt zusaetzlich einen `OnBackInvokedCallback` - noch nicht
+auf dem Geraet gegengeprueft.
