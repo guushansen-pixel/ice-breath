@@ -107,8 +107,12 @@
   .disclaimer-list li { margin-bottom: 8px; }
 
   /* --- Session screen --- */
-  #screen-session { padding: 0; position: relative; transition: background-color 0.5s ease; touch-action: none; }
-  #screen-session.phase-ready      { background: var(--bg2); }
+  /* Bewusst theme-unabhaengig immer dunkel (wie in breathe-well): die
+     Phasen-Hintergruende sind fest dunkel - mit geerbtem --fg waeren Uhr,
+     Titel und Abbrechen-Knopf im hellen Design dunkel auf fast Schwarz,
+     und die fest hellen Hinweistexte unlesbar auf hellem --bg2. */
+  #screen-session { padding: 0; position: relative; transition: background-color 0.5s ease; touch-action: none; color: #EAF4F7; }
+  #screen-session.phase-ready      { background: #123244; }
   #screen-session.phase-breathing  { background: #123A48; }
   #screen-session.phase-retention  { background: #081820; }
   #screen-session.phase-recovery   { background: #4A3216; }
@@ -119,7 +123,7 @@
     padding: 18px 18px 0;
     padding-top: calc(18px + env(safe-area-inset-top, 0px));
   }
-  .session-top button { background: rgba(0,0,0,0.28); color: var(--fg); border: none; border-radius: 10px; padding: 10px 14px; font-size: 0.9em; }
+  .session-top button { background: rgba(0,0,0,0.28); color: #EAF4F7; border: none; border-radius: 10px; padding: 10px 14px; font-size: 0.9em; }
   .round-indicator { font-size: 1.05em; color: rgba(255,255,255,0.85); padding-top: 12px; }
 
   .session-view { display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
@@ -138,7 +142,7 @@
   .pacer-wrap { width: 280px; height: 280px; display: flex; align-items: center; justify-content: center; position: relative; }
   .pacer-circle {
     width: 220px; height: 220px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, var(--accent2), var(--accent));
+    background: radial-gradient(circle at 35% 30%, #7FD8E0, #3FB8C4);   /* fest dunkel-Palette, siehe #screen-session */
     transform: scale(0.55); will-change: transform, background;
     transition: background 0.4s ease;
   }
@@ -620,14 +624,29 @@
   // ---------- App / navigation state ----------
   var state = { screen: 'home' };
 
+  // Hoechstens EIN "weg vom Home"-Eintrag im Verlauf: Android-Zurueck ruft
+  // webView.goBack(), solange es Eintraege gibt - stapelten sie sich (jeder
+  // Screen-Wechsel ein neuer, keiner je entfernt), musste man auf dem
+  // Home-Screen mehrfach Zurueck druecken, bis die App schliesst.
   function showScreen(name, opts) {
     opts = opts || {};
     document.querySelectorAll('.screen').forEach(function (el) { el.classList.remove('active'); });
     document.getElementById('screen-' + name).classList.add('active');
     state.screen = name;
-    if (opts.pushHistory !== false && name !== 'home') {
+    if (opts.pushHistory !== false && name !== 'home' && !history.state) {
       try { history.pushState({ screen: name }, ''); } catch (e) {}
     }
+  }
+
+  // In-App-Wege zurueck zum Home: den eigenen Verlaufseintrag per
+  // history.back() abbauen und die Navigation dem popstate-Handler
+  // ueberlassen, statt den Eintrag liegen zu lassen.
+  function goHome() {
+    if (history.state) {
+      try { history.back(); return; } catch (e) {}
+    }
+    showScreen('home', { pushHistory: false });
+    renderHome();
   }
 
   window.addEventListener('popstate', function () {
@@ -636,6 +655,14 @@
       cancelSession();
       return;
     }
+    if (state.screen === 'safety') {
+      try { history.pushState({ screen: 'settings' }, ''); } catch (e) {}
+      showScreen('settings', { pushHistory: false });
+      return;
+    }
+    // Kaelte-Timer nicht unsichtbar weiterlaufen lassen - wie beim
+    // Zurueck-Knopf stoppen, damit auch die Bestzeit gespeichert wird.
+    if (state.screen === 'cold' && cold.running) toggleCold();
     showScreen('home', { pushHistory: false });
     renderHome();
   });
@@ -786,7 +813,11 @@
     var elapsed = phaseElapsedMs() * FAST;
     var cycleMs = cfg.inhaleMs + cfg.exhaleMs;
     var totalMs = cfg.breathsPerRound * cycleMs;
-    if (elapsed >= totalMs) { beginRetention(); return; }
+    if (elapsed >= totalMs) {
+      session.breathIndex = cfg.breathsPerRound - 1;   // alle Zuege geatmet (auch wenn ein Frame welche uebersprang)
+      beginRetention();
+      return;
+    }
     var idx = Math.min(cfg.breathsPerRound - 1, Math.floor(elapsed / cycleMs));
     var inCycle = elapsed - idx * cycleMs;
     var subPhase = inCycle < cfg.inhaleMs ? 'inhale' : 'exhale';
@@ -831,7 +862,9 @@
   function endRetention() {
     if (!session || session.phase !== 'retention') return;
     var retentionMs = (Date.now() - session.retentionStartEpoch) * FAST;
-    session.rounds.push({ retentionMs: Math.round(retentionMs), recoveryHoldMs: 0, breathsCompleted: session.config.breathsPerRound });
+    // Tatsaechlich geatmete Zuege - per Tippen kann der Atem-Halt schon ab der
+    // Haelfte beginnen (siehe breathingSkipThreshold).
+    session.rounds.push({ retentionMs: Math.round(retentionMs), recoveryHoldMs: 0, breathsCompleted: session.breathIndex + 1 });
     beginRecoveryHold();
   }
 
@@ -915,8 +948,7 @@
     confirmDialog('Session wirklich abbrechen? Der Fortschritt wird nicht gespeichert.', function () {
       releaseWakeLock();
       session = null;
-      showScreen('home', { pushHistory: false });
-      renderHome();
+      goHome();
     });
   }
 
@@ -1100,6 +1132,8 @@
       document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('active'); });
       btn.classList.add('active');
       document.getElementById('tab-' + btn.getAttribute('data-tab')).classList.add('active');
+      // Chart war evtl. im versteckten Tab gerendert (clientWidth 0) - jetzt sichtbar neu messen.
+      if (btn.getAttribute('data-tab') === 'leaderboards') renderHoldsChart();
     });
   });
 
@@ -1137,20 +1171,20 @@
   document.getElementById('btn-safety-back').addEventListener('click', function () { showScreen('settings', { pushHistory: false }); });
 
   document.getElementById('btn-open-settings').addEventListener('click', function () { renderSettings(); showScreen('settings'); });
-  document.getElementById('btn-open-history').addEventListener('click', function () { renderHistory(); showScreen('history'); });
+  // Erst anzeigen, dann rendern: das Holds-Chart misst canvas.clientWidth,
+  // und das ist bei noch verstecktem Screen 0 (-> verzerrter 300px-Fallback).
+  document.getElementById('btn-open-history').addEventListener('click', function () { showScreen('history'); renderHistory(); });
   document.getElementById('btn-open-cold').addEventListener('click', function () { renderColdBest(); showScreen('cold'); });
-  document.getElementById('btn-settings-back').addEventListener('click', function () { showScreen('home', { pushHistory: false }); renderHome(); });
-  document.getElementById('btn-history-back').addEventListener('click', function () { showScreen('home', { pushHistory: false }); renderHome(); });
+  document.getElementById('btn-settings-back').addEventListener('click', goHome);
+  document.getElementById('btn-history-back').addEventListener('click', goHome);
   document.getElementById('btn-cold-back').addEventListener('click', function () {
     if (cold.running) toggleCold();
-    showScreen('home', { pushHistory: false }); renderHome();
+    goHome();
   });
   document.getElementById('btn-cold-toggle').addEventListener('click', toggleCold);
   document.getElementById('btn-start-session').addEventListener('click', startSession);
   document.getElementById('btn-cancel-session').addEventListener('click', cancelSession);
-  document.getElementById('btn-summary-done').addEventListener('click', function () {
-    showScreen('home', { pushHistory: false }); renderHome();
-  });
+  document.getElementById('btn-summary-done').addEventListener('click', goHome);
 
   // ---------- Init ----------
   var onboardingAccepted = loadJSON('wimhof.onboardingAccepted.v1', null);

@@ -73,3 +73,12 @@ statt den Abbrechen-Dialog zu zeigen (targetSdk 36 aktiviert Predictive
 Back, `onKeyDown` allein faengt die Geste nicht mehr ab). `build.ps1`
 registriert jetzt zusaetzlich einen `OnBackInvokedCallback` - noch nicht
 auf dem Geraet gegengeprueft.
+
+Review 2026-09-15 (v1.3), im Browser verifiziert: Session-Screen ist jetzt
+wie in breathe-well theme-unabhaengig immer dunkel (im hellen Design waren
+Retention-Uhr/Abbrechen-Knopf dunkel auf fast Schwarz); Android-Zurueck auf
+dem Kaelte-Timer stoppt ihn und speichert die Bestzeit; Holds-Chart wird erst
+nach dem Anzeigen gemessen (war verzerrt); `breathsCompleted` speichert die
+tatsaechlich geatmeten Zuege; hoechstens ein Verlaufseintrag "weg vom Home"
+(`goHome()` baut ihn per `history.back()` ab), sonst musste man auf dem Home
+mehrfach Zurueck druecken, bis die App schliesst.
