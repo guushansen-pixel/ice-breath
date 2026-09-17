@@ -161,6 +161,19 @@
   .retention-clock { font-size: 4.2em; font-weight: 800; font-variant-numeric: tabular-nums; }
   .retention-sub { color: rgba(255,255,255,0.7); margin-top: 6px; }
 
+  /* Holds der bisherigen Runden dieser Session. min-height haelt den Platz auch
+     in Runde 1 frei, damit die Uhr beim Wechsel zu Runde 2 nicht springt. */
+  .retention-history {
+    display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+    margin-top: 24px; min-height: 32px;
+  }
+  .retention-chip {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 999px; padding: 5px 10px; font-size: 0.85em;
+    color: rgba(255,255,255,0.82); font-variant-numeric: tabular-nums;
+  }
+  .retention-chip .n { color: rgba(255,255,255,0.5); margin-right: 6px; }
+
   .recovery-clock { font-size: 5em; font-weight: 800; font-variant-numeric: tabular-nums; }
   .progress-ring { height: 6px; width: 80%; max-width: 260px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; margin-top: 20px; }
   .progress-ring .fill { height: 100%; background: rgba(255,255,255,0.85); width: 0%; }
@@ -373,6 +386,7 @@
       <div class="phase-title">Atem anhalten</div>
       <div class="retention-clock" id="retention-clock">0:00</div>
       <div class="retention-sub">Tippe irgendwo, wenn du wieder einatmen möchtest</div>
+      <div class="retention-history" id="retention-history"></div>
     </div>
 
     <div id="view-recovery" class="session-view">
@@ -849,7 +863,17 @@
     session._lastRetentionSecShown = -1;
     document.getElementById('screen-session').className = 'screen active phase-retention';
     document.getElementById('retention-clock').textContent = '0:00';
+    renderRetentionHistory();
     cueHoldStart(); vibrate(VIB.holdStart);
+  }
+  // Holds der bereits abgeschlossenen Runden dieser Session - session.rounds
+  // enthaelt sie schon (endRetention pusht pro Runde), also kein eigener State.
+  // Einmal pro Phasenwechsel gerendert, nicht im loop(): die Werte stehen fest.
+  function renderRetentionHistory() {
+    document.getElementById('retention-history').innerHTML = session.rounds.map(function (r, i) {
+      return '<span class="retention-chip"><span class="n">' + (i + 1) + ' ·</span>' +
+             formatClockMs(r.retentionMs) + '</span>';
+    }).join('');
   }
   function renderRetentionTick() {
     var elapsedMs = (Date.now() - session.retentionStartEpoch) * FAST;

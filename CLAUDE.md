@@ -82,3 +82,13 @@ nach dem Anzeigen gemessen (war verzerrt); `breathsCompleted` speichert die
 tatsaechlich geatmeten Zuege; hoechstens ein Verlaufseintrag "weg vom Home"
 (`goHome()` baut ihn per `history.back()` ab), sonst musste man auf dem Home
 mehrfach Zurueck druecken, bis die App schliesst.
+
+v1.4 (2026-09-17), im Browser verifiziert: Waehrend des Atem-Halts stehen
+unter dem Hinweistext die Holds der bereits abgeschlossenen Runden dieser
+Session als kompakte Chips ("1 · 1:34"). Kein neuer State und keine neue
+Persistenz - `session.rounds` enthaelt sie schon, `renderRetentionHistory()`
+rendert sie einmal pro Phasenwechsel aus `beginRetention()`. Der reservierte
+Platz (`min-height` auf `.retention-history`) haelt die Uhr in Runde 1 an
+derselben Stelle wie in den Folgerunden. Bei 6 Runden und sehr schmalen
+Displays (375px) brechen die Chips in Runde 6 in eine zweite Zeile um; auf
+Pixel-Breite (412px) passen alle fuenf in eine Zeile.

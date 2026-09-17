@@ -40,7 +40,8 @@ zusaetzlich als Web-Asset in die APK.
 Eine Runde: `Bereit (3s)` → `Power-Atmung` (konfigurierbare Anzahl
 Atemzuege, Tempo einstellbar; ab der Haelfte der Atemzuege optional per
 Tap vorzeitig in den Atem-Halt wechseln) → `Atem anhalten` (offenes
-Stoppuhr, endet per Tap irgendwo auf dem Bildschirm) → `Erholungsatem
+Stoppuhr, endet per Tap irgendwo auf dem Bildschirm; darunter die Holds
+der bereits abgeschlossenen Runden dieser Session als Chips) → `Erholungsatem
 halten` (Countdown, Standard 15s) → kurzer `Ausatmen`-Uebergang (~2.5s,
 nur zwischen Runden) → naechste Runde oder Zusammenfassung.
 
