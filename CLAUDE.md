@@ -70,9 +70,11 @@ Aenderungen nochmal auf dem Geraet gegenpruefen.
 Zusaetzlich behoben (2026-09-14, bei breathe-well entdeckt): die
 Zurueck-Wischgeste schloss waehrend einer aktiven Session die App direkt,
 statt den Abbrechen-Dialog zu zeigen (targetSdk 36 aktiviert Predictive
-Back, `onKeyDown` allein faengt die Geste nicht mehr ab). `build.ps1`
-registriert jetzt zusaetzlich einen `OnBackInvokedCallback` - noch nicht
-auf dem Geraet gegengeprueft.
+Back, `onKeyDown` allein faengt die Geste nicht mehr ab). Zunaechst hatte
+`build.ps1` dafuer selbst einen `OnBackInvokedCallback` nachgepatcht; seit
+apk-builder das ab 2026-09-24 im WebView-Template selbst mitbringt, ist der
+Patch aus `build.ps1` raus (siehe apk-builder\CLAUDE.md). Noch nicht auf
+dem Geraet gegengeprueft.
 
 Review 2026-09-15 (v1.3), im Browser verifiziert: Session-Screen ist jetzt
 wie in breathe-well theme-unabhaengig immer dunkel (im hellen Design waren
