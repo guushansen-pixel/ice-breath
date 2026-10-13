@@ -26,6 +26,10 @@ cd "D:\claude code projects\ice-breath"
 .\build.ps1 -VersionName "1.1" -VersionCode 2 -Release   # bei jedem Release hochzaehlen
 ```
 
+Die fertige Release-APK (`apk-builder\out\IceBreath-release-*.apk`) als
+`dist\ice-breath-<version>.apk` ins Repo kopieren, die alte APK aus `dist\`
+entfernen und den Download-Link oben im README.md umstellen.
+
 Was sich nur auf dem echten Geraet (Pixel 11 Pro) verifizieren laesst,
 nicht im Desktop-Browser: Vibrationsgefuehl, ob der Bildschirm waehrend
 einer echten Session wach bleibt, WebView-Force-Dark-Verhalten, Portrait-
@@ -94,3 +98,8 @@ Platz (`min-height` auf `.retention-history`) haelt die Uhr in Runde 1 an
 derselben Stelle wie in den Folgerunden. Bei 6 Runden und sehr schmalen
 Displays (375px) brechen die Chips in Runde 6 in eine zweite Zeile um; auf
 Pixel-Breite (412px) passen alle fuenf in eine Zeile.
+
+v1.6 (2026-10-13): Breath-Hold-Kennzahl ist jetzt der Durchschnitt statt
+des Medians (Commit 533e0a5). Signierte Release-APK (versionCode 6) liegt
+unter `dist/ice-breath-1.6.apk` und ist im README verlinkt; per `aapt2`
+verifiziert: nur VIBRATE-Permission. Noch nicht auf dem Geraet getestet.

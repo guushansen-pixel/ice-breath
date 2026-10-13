@@ -6,6 +6,12 @@ alles in einer Datei. Bewusst nur die Wim-Hof-Methode (WHM) - keine
 Multi-Modality-Breathing-App wie Othership/Breathwrk, das waere ein
 eigenes Projekt.
 
+## Download
+
+Aktuelle signierte Release-APK: [ice-breath-1.6.apk](dist/ice-breath-1.6.apk)
+(v1.6, versionCode 6). Aufs Handy kopieren und dort antippen - die
+Installation aus unbekannten Quellen muss dafuer erlaubt sein.
+
 ## Bauen
 
 ```powershell
