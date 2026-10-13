@@ -50,7 +50,7 @@ Dialog oeffnen statt die App zu schliessen).
 ## Aktueller Stand
 
 Erste Version fertig: WHM-Session (konfigurierbare Atemzuege/Runden/Tempo/
-Erholungsatem-Dauer), Leaderboards (Median-Hold pro Session + pro Monat,
+Erholungsatem-Dauer), Leaderboards (Durchschnitts-Hold pro Session + pro Monat,
 laengste Session, laengster Einzel-Hold, Daily-Streak), Achievement-Badges,
 Kaelte-Timer, Sicherheitshinweise. Im Browser durchgetestet (Session-Ablauf,
 Persistenz nach Reload unter echter http-Origin, Leaderboard-/Streak-Mathe

@@ -182,7 +182,7 @@
   #screen-summary { align-items: stretch; }
   .summary-hero { text-align: center; margin-bottom: 18px; }
   .summary-hero .big { font-size: 1.6em; margin-bottom: 6px; }
-  .summary-hero .median { font-size: 2.4em; font-weight: 800; color: var(--accent2); }
+  .summary-hero .avg { font-size: 2.4em; font-weight: 800; color: var(--accent2); }
   .round-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
   .round-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; }
   .round-item .label { color: var(--fg-dim); }
@@ -407,8 +407,8 @@
   <div id="screen-summary" class="screen">
     <h2>Session beendet</h2>
     <div class="summary-hero">
-      <div class="big">Median-Breath-Hold</div>
-      <div class="median" id="summary-median">0:00</div>
+      <div class="big">Ø Breath-Hold</div>
+      <div class="avg" id="summary-avg">0:00</div>
     </div>
     <div id="summary-badges"></div>
     <div class="round-list" id="summary-rounds"></div>
@@ -435,11 +435,11 @@
         <div class="subtitle" style="margin:4px 0 0" id="lb-longest-streak"></div>
       </div>
 
-      <h3>Median-Breath-Hold – beste Sessions</h3>
-      <div class="lb-list" id="lb-median-sessions"></div>
+      <h3>Ø Breath-Hold – beste Sessions</h3>
+      <div class="lb-list" id="lb-avg-sessions"></div>
 
-      <h3>Median-Breath-Hold – bester Monat</h3>
-      <div class="lb-list" id="lb-median-months"></div>
+      <h3>Ø Breath-Hold – bester Monat</h3>
+      <div class="lb-list" id="lb-avg-months"></div>
 
       <h3>Längste Session (Gesamtdauer)</h3>
       <div class="lb-list" id="lb-longest-duration"></div>
@@ -540,11 +540,9 @@
   function formatDate(epochMs) { return new Date(epochMs).toLocaleDateString('de-DE'); }
 
   // ---------- Math helpers ----------
-  function median(nums) {
+  function mean(nums) {
     if (!nums.length) return 0;
-    var s = nums.slice().sort(function (a, b) { return a - b; });
-    var mid = Math.floor(s.length / 2);
-    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    return nums.reduce(function (a, b) { return a + b; }, 0) / nums.length;
   }
   function easeInOut(t) { return 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, t))); }
 
@@ -739,9 +737,11 @@
   }
 
   // ---------- Leaderboards ----------
-  function sessionMedianRetentionMs(s) {
-    if (typeof s.medianRetentionMs === 'number') return s.medianRetentionMs;
-    return median(s.rounds.map(function (r) { return r.retentionMs; }));
+  // Aeltere Records haben nur medianRetentionMs - der Durchschnitt kommt dann
+  // aus rounds, die jeder Record vollstaendig enthaelt.
+  function sessionAvgRetentionMs(s) {
+    if (typeof s.avgRetentionMs === 'number') return s.avgRetentionMs;
+    return mean(s.rounds.map(function (r) { return r.retentionMs; }));
   }
   function sessionLongestRetentionMs(s) {
     if (typeof s.longestRetentionMs === 'number') return s.longestRetentionMs;
@@ -751,8 +751,8 @@
     if (typeof s.totalDurationMs === 'number') return s.totalDurationMs;
     return s.endedAt - s.startedAt;
   }
-  function topSessionsByMedian(n) {
-    return sessions.slice().sort(function (a, b) { return sessionMedianRetentionMs(b) - sessionMedianRetentionMs(a); }).slice(0, n);
+  function topSessionsByAvg(n) {
+    return sessions.slice().sort(function (a, b) { return sessionAvgRetentionMs(b) - sessionAvgRetentionMs(a); }).slice(0, n);
   }
   function topSessionsByDuration(n) {
     return sessions.slice().sort(function (a, b) { return sessionTotalDurationMs(b) - sessionTotalDurationMs(a); }).slice(0, n);
@@ -760,11 +760,11 @@
   function topSessionsByLongestHold(n) {
     return sessions.slice().sort(function (a, b) { return sessionLongestRetentionMs(b) - sessionLongestRetentionMs(a); }).slice(0, n);
   }
-  function bestMedianByMonth() {
+  function bestAvgByMonth() {
     var map = {};
     sessions.forEach(function (s) {
-      var k = monthKey(s.startedAt), med = sessionMedianRetentionMs(s);
-      if (!map[k] || med > map[k].bestMedianMs) map[k] = { monthKey: k, bestMedianMs: med, sessionId: s.id };
+      var k = monthKey(s.startedAt), avg = sessionAvgRetentionMs(s);
+      if (!map[k] || avg > map[k].bestAvgMs) map[k] = { monthKey: k, bestAvgMs: avg, sessionId: s.id };
     });
     return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.monthKey.localeCompare(a.monthKey); });
   }
@@ -956,7 +956,7 @@
       id: 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       startedAt: session.startedAt, endedAt: endedAt,
       config: session.config, rounds: session.rounds,
-      medianRetentionMs: median(retentions),
+      avgRetentionMs: Math.round(mean(retentions)),
       longestRetentionMs: Math.max.apply(null, retentions.concat([0])),
       totalDurationMs: endedAt - session.startedAt
     };
@@ -1050,7 +1050,7 @@
 
   // ---------- Summary ----------
   function renderSummary(record, newBadges) {
-    document.getElementById('summary-median').textContent = formatClockMs(record.medianRetentionMs);
+    document.getElementById('summary-avg').textContent = formatClockMs(record.avgRetentionMs);
     var badgeWrap = document.getElementById('summary-badges');
     badgeWrap.innerHTML = '';
     if (newBadges.length) {
@@ -1116,12 +1116,12 @@
     var longest = longestStreak();
     document.getElementById('lb-longest-streak').textContent = 'Bestwert: ' + longest + ' Tage';
 
-    renderLbList('lb-median-sessions', topSessionsByMedian(5),
-      function (s) { return formatClockMs(sessionMedianRetentionMs(s)); },
+    renderLbList('lb-avg-sessions', topSessionsByAvg(5),
+      function (s) { return formatClockMs(sessionAvgRetentionMs(s)); },
       function (s) { return formatDateTime(s.startedAt); });
 
-    renderLbList('lb-median-months', bestMedianByMonth().slice(0, 6),
-      function (m) { return formatClockMs(m.bestMedianMs); },
+    renderLbList('lb-avg-months', bestAvgByMonth().slice(0, 6),
+      function (m) { return formatClockMs(m.bestAvgMs); },
       function (m) { return monthKeyLabel(m.monthKey); });
 
     renderLbList('lb-longest-duration', topSessionsByDuration(5),
@@ -1143,7 +1143,7 @@
         var item = document.createElement('div');
         item.className = 'history-item';
         item.innerHTML =
-          '<div class="row1"><span>' + s.config.roundCount + ' Runden</span><span>Median ' + formatClockMs(sessionMedianRetentionMs(s)) + '</span></div>' +
+          '<div class="row1"><span>' + s.config.roundCount + ' Runden</span><span>Ø ' + formatClockMs(sessionAvgRetentionMs(s)) + '</span></div>' +
           '<div class="row2"><span>' + formatDateTime(s.startedAt) + '</span><span>' + formatDurationLong(sessionTotalDurationMs(s) / 1000) + '</span></div>';
         list.appendChild(item);
       });

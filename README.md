@@ -66,7 +66,9 @@ stille Migration auskommt:
     id, startedAt, endedAt,
     config: { breathsPerRound, roundCount, inhaleMs, exhaleMs, recoveryHoldSec },
     rounds: [ { retentionMs, recoveryHoldMs, breathsCompleted }, ... ],
-    medianRetentionMs, longestRetentionMs, totalDurationMs   // bei Save vorberechnet
+    avgRetentionMs, longestRetentionMs, totalDurationMs   // bei Save vorberechnet
+    // (Records vor 2026-10 haben statt avgRetentionMs noch medianRetentionMs;
+    // der Durchschnitt wird fuer sie aus rounds berechnet)
   }
   ```
   Die Leaderboard-Funktionen berechnen bei Bedarf defensiv aus `rounds`
@@ -82,8 +84,10 @@ stille Migration auskommt:
 Drei Kategorien, alle rein lokal/persoenlich (kein Netzwerk, keine
 Mitspieler):
 
-1. **Median-Breath-Hold** - Median der Retention-Zeiten einer Session;
-   Top-5 all-time und bester Monat (`bestMedianByMonth()`).
+1. **Ø Breath-Hold** - Durchschnitt der Retention-Zeiten einer Session;
+   Top-5 all-time und bester Monat (`bestAvgByMonth()`). Bis 2026-10 war
+   das der Median - der lag durch die meist kurze erste Runde fast immer
+   ueber dem Durchschnitt und wirkte zu hoch.
 2. **Laengste Session** - zwei getrennte Ranglisten: Gesamtdauer
    (`totalDurationMs`, Start bis Ende der Session) und laengster
    Einzel-Hold (`longestRetentionMs`, ueber alle Sessions).
